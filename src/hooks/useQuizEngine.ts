@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Question,
   QuizState,
@@ -35,10 +35,27 @@ interface QuizEngineState {
   result: QuizResult | null;
 }
 
+// Valid state transitions — enforced by every transition function.
+// Any transition not listed here is silently rejected.
+const VALID_TRANSITIONS: Record<QuizState, QuizState[]> = {
+  loading: ["ready"],
+  ready: ["question"],
+  question: ["answered"],
+  answered: ["feedback"],
+  feedback: ["transitioning"],
+  transitioning: ["question", "completed"],
+  completed: ["ready"],
+};
+
+function canTransition(from: QuizState, to: QuizState): boolean {
+  return VALID_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
 export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEngineProps) {
   const sessionIdRef = useRef(generateSessionId());
   const startTimeRef = useRef(Date.now());
   const questionStartRef = useRef(Date.now());
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [engine, setEngine] = useState<QuizEngineState>(() => {
     const shuffled = shuffle(rawQuestions);
@@ -55,16 +72,48 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
     };
   });
 
+  // Clean up feedback timer on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Automatic transition: "answered" → "feedback" after FEEDBACK_DISPLAY_MS
+  useEffect(() => {
+    if (engine.state !== "answered") return;
+
+    feedbackTimerRef.current = setTimeout(() => {
+      setEngine((prev) => {
+        if (!canTransition(prev.state, "feedback")) return prev;
+        return { ...prev, state: "feedback" };
+      });
+    }, FEEDBACK_DISPLAY_MS);
+
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current);
+        feedbackTimerRef.current = null;
+      }
+    };
+  }, [engine.state]);
+
   const startQuiz = useCallback(() => {
     startTimeRef.current = Date.now();
     questionStartRef.current = Date.now();
-    setEngine((prev) => ({ ...prev, state: "question" }));
+    setEngine((prev) => {
+      if (!canTransition(prev.state, "question")) return prev;
+      return { ...prev, state: "question" };
+    });
   }, []);
 
   const submitAnswer = useCallback(
     (answer: string | number | boolean) => {
       setEngine((prev) => {
-        if (prev.state !== "question") return prev;
+        // Only accept answers during the "question" state
+        if (!canTransition(prev.state, "answered")) return prev;
 
         const question = prev.questions[prev.currentIndex];
         const timeSpent = Math.round((Date.now() - questionStartRef.current) / 1000);
@@ -101,7 +150,7 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
 
         return {
           ...prev,
-          state: "feedback",
+          state: "answered" as QuizState,
           currentScore: scoreResult,
           streak: newStreak,
           totalScore: prev.totalScore + scoreResult.totalPoints,
@@ -116,8 +165,19 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
     submitAnswer(-1); // -1 signals timeout — always incorrect
   }, [submitAnswer]);
 
+  // Allow user to skip the "answered" hold period and go straight to feedback
+  const skipToFeedback = useCallback(() => {
+    setEngine((prev) => {
+      if (!canTransition(prev.state, "feedback")) return prev;
+      return { ...prev, state: "feedback" };
+    });
+  }, []);
+
   const nextQuestion = useCallback(() => {
     setEngine((prev) => {
+      // Guard: only advance from "feedback" state
+      if (!canTransition(prev.state, "transitioning")) return prev;
+
       const nextIndex = prev.currentIndex + 1;
 
       if (nextIndex >= prev.questions.length) {
@@ -178,7 +238,7 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
 
         return {
           ...prev,
-          state: "completed",
+          state: "completed" as QuizState,
           result,
           direction: 1,
         };
@@ -187,7 +247,7 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
       questionStartRef.current = Date.now();
       return {
         ...prev,
-        state: "question",
+        state: "question" as QuizState,
         currentIndex: nextIndex,
         currentScore: null,
         direction: 1,
@@ -196,6 +256,10 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
   }, [categoryId]);
 
   const restartQuiz = useCallback(() => {
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
     sessionIdRef.current = generateSessionId();
     startTimeRef.current = Date.now();
     questionStartRef.current = Date.now();
@@ -213,13 +277,21 @@ export function useQuizEngine({ categoryId, questions: rawQuestions }: UseQuizEn
     });
   }, [rawQuestions]);
 
+  // Derive currentAnswer by question ID — single source of truth
+  const currentQuestion = engine.questions[engine.currentIndex];
+  const currentAnswer = engine.answers.find(
+    (a) => a.questionId === currentQuestion?.id
+  ) ?? null;
+
   return {
     ...engine,
-    currentQuestion: engine.questions[engine.currentIndex],
+    currentQuestion,
+    currentAnswer,
     totalQuestions: engine.questions.length,
     startQuiz,
     submitAnswer,
     handleTimeUp,
+    skipToFeedback,
     nextQuestion,
     restartQuiz,
   };

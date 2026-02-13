@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Home, Trophy, Info, Menu, X } from "lucide-react";
+import { Brain, Home, Trophy, Info, Cog, Menu, X } from "lucide-react";
 import Image from "next/image";
 import LightLogo from "@/logo/bettersolano-logo-light-mode.svg";
 import DarkLogo from "@/logo/bettersolano-logo-dark-mode.svg";
@@ -16,6 +16,7 @@ const navLinks = [
   { href: "/quiz", label: "Quiz", icon: Brain },
   { href: "/leaderboard", label: "Scores", icon: Trophy },
   { href: "/about", label: "About", icon: Info },
+  { href: "/mechanics", label: "Mechanics", icon: Cog },
 ];
 
 export default function Header() {
@@ -80,6 +81,7 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
+              type="button"
               className="md:hidden p-2.5 rounded-lg hover:bg-accent text-muted-foreground"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"

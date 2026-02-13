@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Lightbulb, CheckCircle, XCircle } from "lucide-react";
-import { optionItem, correctPulse, incorrectShake } from "@/styles/animations";
+import { optionItem } from "@/styles/animations";
 import Button from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { normalizeAnswer } from "@/lib/utils";
@@ -113,11 +113,11 @@ export default function FillInBlank({
         </form>
       )}
 
-      {/* Result indicator */}
+      {/* Result indicator — uses pulse/shake from optionItem's unified variant set */}
       {isAnswered && (
         <motion.div
           animate={isCorrect ? "pulse" : "shake"}
-          variants={isCorrect ? correctPulse : incorrectShake}
+          variants={optionItem}
           className={cn(
             "flex items-center justify-center gap-2 p-4 rounded-xl font-semibold",
             isCorrect && "bg-success/10 text-success",

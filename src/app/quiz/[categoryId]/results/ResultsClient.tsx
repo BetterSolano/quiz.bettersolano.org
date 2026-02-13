@@ -73,21 +73,21 @@ function ResultsContent() {
                     variants={heroChild}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-6 w-full"
+                    className="flex flex-col gap-4 w-full"
                 >
-                    <Link href={`/quiz/${categoryId}`}>
+                    <Link href={`/quiz/${categoryId}`} className="block">
                         <Button variant="primary" className="w-full">
                             <RotateCcw className="w-4 h-4" />
                             Retry {category.name}
                         </Button>
                     </Link>
-                    <Link href="/quiz">
+                    <Link href="/quiz" className="block">
                         <Button variant="secondary" className="w-full">
                             <ArrowRight className="w-4 h-4" />
                             Try Another Category
                         </Button>
                     </Link>
-                    <Link href="/">
+                    <Link href="/" className="block">
                         <Button variant="ghost" className="w-full">
                             <Home className="w-4 h-4" />
                             Back to Home

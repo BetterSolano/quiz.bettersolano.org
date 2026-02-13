@@ -34,6 +34,12 @@ export default function ConfettiEffect({ active }: { active: boolean }) {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", handleResize);
+
     // Create particles
     particlesRef.current = Array.from({ length: 150 }, () => ({
       x: window.innerWidth / 2 + (Math.random() - 0.5) * 200,
@@ -81,6 +87,7 @@ export default function ConfettiEffect({ active }: { active: boolean }) {
 
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      window.removeEventListener("resize", handleResize);
     };
   }, [active]);
 

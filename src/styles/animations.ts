@@ -50,21 +50,18 @@ export const optionItem: Variants = {
     scale: 1,
     transition: springTransition,
   },
-};
-
-// Correct answer pulse
-export const correctPulse: Variants = {
-  initial: { scale: 1 },
+  // Correct answer pulse — fully specifies visible-state properties to prevent
+  // reversion to "hidden" defaults when switching from the "visible" variant.
   pulse: {
+    opacity: 1,
+    y: 0,
     scale: [1, 1.03, 1],
     transition: { duration: 0.4 },
   },
-};
-
-// Incorrect answer shake
-export const incorrectShake: Variants = {
-  initial: { x: 0 },
+  // Incorrect answer shake — same principle: maintains opacity and y.
   shake: {
+    opacity: 1,
+    y: 0,
     x: [-8, 8, -6, 6, -3, 3, 0],
     transition: { duration: 0.5 },
   },

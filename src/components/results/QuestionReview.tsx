@@ -32,6 +32,7 @@ export default function QuestionReview({ result, questions }: QuestionReviewProp
             <button
               onClick={() => setExpandedId(isExpanded ? null : answer.questionId)}
               className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent/50 transition-colors"
+              aria-expanded={Boolean(isExpanded)}
             >
               <div
                 className={cn(

@@ -15,8 +15,8 @@ import MultipleChoice from "./question-types/MultipleChoice";
 import TrueFalse from "./question-types/TrueFalse";
 import FillInBlank from "./question-types/FillInBlank";
 import ImageBased from "./question-types/ImageBased";
-import { questionSlide, countdownNumber } from "@/styles/animations";
-import { Star, TrendingUp } from "lucide-react";
+import { questionSlide } from "@/styles/animations";
+import { Star } from "lucide-react";
 
 interface QuizEngineProps {
   categoryId: CategoryId;
@@ -31,7 +31,7 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
     onTimeUp: engine.handleTimeUp,
   });
 
-  // Start timer when question state begins
+  // Start timer only during the "question" state; stop for any other state.
   useEffect(() => {
     if (engine.state === "question") {
       timer.reset(engine.currentQuestion?.timeLimit || 20);
@@ -48,7 +48,7 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
     }
   }, [engine.state, engine.result, onComplete]);
 
-  // Ready state — countdown
+  // Ready state — start screen
   if (engine.state === "ready") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -75,9 +75,16 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
     );
   }
 
-  // Question/Feedback state
-  const isAnswered = engine.state === "feedback";
-  const lastAnswer = engine.answers[engine.answers.length - 1];
+  // Derive UI booleans from the authoritative state machine.
+  // "answered" = options locked, pulse/shake playing, waiting for feedback panel
+  // "feedback" = explanation panel visible, Continue button active
+  // "transitioning" = Continue was clicked, card is exiting (no interaction allowed)
+  const isOptionLocked = engine.state === "answered" || engine.state === "feedback" || engine.state === "transitioning";
+  const showFeedbackPanel = engine.state === "feedback";
+  const showScorePopup = isOptionLocked && (engine.currentScore?.totalPoints || 0) > 0;
+
+  // currentAnswer is keyed by question ID — structurally correct regardless of array order.
+  const currentAnswer = engine.currentAnswer;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -105,7 +112,7 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
       <div className="relative">
         <ScorePopup
           points={engine.currentScore?.totalPoints || 0}
-          show={isAnswered && (engine.currentScore?.totalPoints || 0) > 0}
+          show={showScorePopup}
         />
 
         <AnimatePresence mode="wait" custom={engine.direction}>
@@ -123,14 +130,14 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
               {engine.currentQuestion.question}
             </h2>
 
-            {/* Question type renderer */}
+            {/* Question type renderer — uses ID-keyed currentAnswer as single source of truth */}
             {engine.currentQuestion.type === "multiple-choice" && (
               <MultipleChoice
                 options={engine.currentQuestion.options}
                 correctIndex={engine.currentQuestion.correctIndex}
                 onSelect={(index) => engine.submitAnswer(index)}
-                isAnswered={isAnswered}
-                selectedIndex={lastAnswer?.selectedAnswer as number | undefined}
+                isAnswered={isOptionLocked}
+                selectedIndex={currentAnswer?.selectedAnswer as number | undefined}
               />
             )}
 
@@ -138,8 +145,8 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
               <TrueFalse
                 correctAnswer={engine.currentQuestion.correctAnswer}
                 onSelect={(answer) => engine.submitAnswer(answer)}
-                isAnswered={isAnswered}
-                selectedAnswer={lastAnswer?.selectedAnswer as boolean | undefined}
+                isAnswered={isOptionLocked}
+                selectedAnswer={currentAnswer?.selectedAnswer as boolean | undefined}
               />
             )}
 
@@ -149,8 +156,8 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
                 acceptedAnswers={engine.currentQuestion.acceptedAnswers}
                 hint={engine.currentQuestion.hint}
                 onSubmit={(answer) => engine.submitAnswer(answer)}
-                isAnswered={isAnswered}
-                submittedAnswer={lastAnswer?.selectedAnswer as string | undefined}
+                isAnswered={isOptionLocked}
+                submittedAnswer={currentAnswer?.selectedAnswer as string | undefined}
               />
             )}
 
@@ -161,21 +168,21 @@ export default function QuizEngine({ categoryId, questions, onComplete }: QuizEn
                 options={engine.currentQuestion.options}
                 correctIndex={engine.currentQuestion.correctIndex}
                 onSelect={(index) => engine.submitAnswer(index)}
-                isAnswered={isAnswered}
-                selectedIndex={lastAnswer?.selectedAnswer as number | undefined}
+                isAnswered={isOptionLocked}
+                selectedIndex={currentAnswer?.selectedAnswer as number | undefined}
               />
             )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Feedback */}
+        {/* Feedback panel — only visible in "feedback" state */}
         <AnimatePresence>
-          {isAnswered && lastAnswer && (
+          {showFeedbackPanel && currentAnswer && (
             <div className="mt-4">
               <AnswerFeedback
-                isCorrect={lastAnswer.isCorrect}
+                isCorrect={currentAnswer.isCorrect}
                 explanation={engine.currentQuestion.explanation}
-                pointsEarned={lastAnswer.pointsEarned}
+                pointsEarned={currentAnswer.pointsEarned}
                 streakCount={engine.streak.current}
                 onContinue={engine.nextQuestion}
               />

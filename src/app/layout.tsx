@@ -77,8 +77,38 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Solano Quiz",
+    url: "https://quiz.bettersolano.org",
+    description:
+      "Interactive quiz platform covering the history, culture, geography, and heritage of Solano, Nueva Vizcaya.",
+    publisher: {
+      "@type": "Organization",
+      name: "BetterSolano.org",
+      url: "https://www.bettersolano.org/",
+    },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://quiz.bettersolano.org/quiz",
+    },
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-8777S9SP9X" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8777S9SP9X');`,
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`}>
         <ThemeProvider>
           <Header />

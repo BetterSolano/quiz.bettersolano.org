@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, X, CheckCircle, XCircle } from "lucide-react";
-import { optionContainer, optionItem, correctPulse, incorrectShake } from "@/styles/animations";
+import { optionContainer, optionItem } from "@/styles/animations";
 import { cn } from "@/lib/utils";
 
 interface TrueFalseProps {
@@ -36,14 +36,15 @@ export default function TrueFalse({
         const showCorrect = isAnswered && isCorrect;
         const showIncorrect = isAnswered && isSelected && !isCorrect;
 
+        let animateTarget: string | undefined;
+        if (showCorrect) animateTarget = "pulse";
+        else if (showIncorrect) animateTarget = "shake";
+
         return (
           <motion.button
             key={String(value)}
             variants={optionItem}
-            animate={
-              showCorrect ? "pulse" : showIncorrect ? "shake" : undefined
-            }
-            {...(showCorrect ? correctPulse : showIncorrect ? incorrectShake : {})}
+            animate={animateTarget}
             onClick={() => !isAnswered && onSelect(value)}
             disabled={isAnswered}
             className={cn(

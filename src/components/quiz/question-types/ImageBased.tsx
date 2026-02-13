@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
-import { optionContainer, optionItem, correctPulse, incorrectShake } from "@/styles/animations";
+import { optionContainer, optionItem } from "@/styles/animations";
 import { cn } from "@/lib/utils";
 
 interface ImageBasedProps {
@@ -49,14 +48,15 @@ export default function ImageBased({
           const showCorrect = isAnswered && isCorrect;
           const showIncorrect = isAnswered && isSelected && !isCorrect;
 
+          let animateTarget: string | undefined;
+          if (showCorrect) animateTarget = "pulse";
+          else if (showIncorrect) animateTarget = "shake";
+
           return (
             <motion.button
               key={index}
               variants={optionItem}
-              animate={
-                showCorrect ? "pulse" : showIncorrect ? "shake" : undefined
-              }
-              {...(showCorrect ? correctPulse : showIncorrect ? incorrectShake : {})}
+              animate={animateTarget}
               onClick={() => !isAnswered && onSelect(index)}
               disabled={isAnswered}
               className={cn(
